@@ -1,0 +1,18 @@
+[
+  {
+    "id": "f3f08615-ad39-46e0-8a78-3dc9329d75cb",
+    "status": true,
+    "titulo": "zapatilla",
+    "descripcion": "zapa deportiva",
+    "codigo": "zp001",
+    "precio": 200
+  },
+  {
+    "id": "1e8d780f-0957-43c9-ab75-9ddff307e7dc",
+    "status": true,
+    "titulo": "Mouse gamer",
+    "descripcion": "RGB 16000 DPI",
+    "codigo": "mouse001",
+    "precio": 250
+  }
+]
