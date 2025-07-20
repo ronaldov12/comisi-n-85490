@@ -1,14 +1,34 @@
+<h1> disponibles</h1>
 
-<h1>Agregar Producto</h1>
-<form id="productForm">
-    <input type="text" name="titulo" placeholder="Título" required>
-    <input type="text" name="descripcion" placeholder="Descripción" required>
-    <input type="text" name="codigo" placeholder="Código" required>
-    <input type="number" name="precio" placeholder="Precio" required>
-    <button type="submit">Agregar producto</button>
-</form>
+<div class="product-list">
+    {{#each products}}
+    <div class="product-card">
+        <h3>{{this.title}}</h3>
+        <p><strong>Precio:</strong> ${{this.price}}</p>
+        <p><strong>Categoría:</strong> {{this.category}}</p>
+        <p><strong>Stock:</strong> {{this.stock}}</p>
+        <p><strong>Disponibilidad:</strong> {{this.status}}</p>
 
-<ul id="productList"></ul>
+        <!-- link a detalle del producto -->
+        <a href="/products/{{this._id}}"> detalles</a>
 
-<script src="/socket.io/socket.io.js"></script>
-<script src="/js/realtime.js"></script>
+        <!-- bton para agregar al carrito -->
+        <form method="post" action="/api/carts/:cid/product/{{this._id}}">
+            <button type="submit">🛒 Agregar al carrito</button>
+        </form>
+    </div>
+    {{/each}}
+</div>
+
+
+<div class="pagination">
+    {{#if hasPrevPage}}
+    <a href="{{prevLink}}">anterior</a>
+    {{/if}}
+
+    <span>Página <strong>{{page}}</strong> de <strong>{{totalPages}}</strong></span>
+
+    {{#if hasNextPage}}
+    <a href="{{nextLink}}">Siguiente</a>
+    {{/if}}
+</div>

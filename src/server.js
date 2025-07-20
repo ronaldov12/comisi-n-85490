@@ -1,43 +1,65 @@
-const express = require('express');
-const { Server } = require('socket.io');
-const http = require('http');
-const exphbs = require('express-handlebars');
-const ProductRouters = require('./routers/products.rutas');
-const cartRouters = require('./routers/carts.rutas');
-const viewsRouter = require('./routers/views.router.js');
+import express from 'express';
+import { Server } from 'socket.io';
+import http from 'http';
+import path from 'path';
+import exphbs from 'express-handlebars';
+import mongoose from 'mongoose';
 
-const ProductManager = require('./services/ProductManager');
+import ProductRouters from './routers/products.rutas.js';
+import cartRouters from './routers/carts.rutas.js';
+import viewsRouter from './routers/views.router.js';
+import ProductManager from './services/ProductManager.js';
+
 const manager = new ProductManager();
 
-
 const app = express();
-const server = http.createServer(app)
-const io = new Server(server)
-const PORT = 8080;
+const server = http.createServer(app);
+const io = new Server(server);
 
+// ✅ Puerto blindado
+const PORT = process.env.PORT || 8080;
+
+// 🧼 Middlewares
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static('public'));
-app.engine('handlebars', exphbs.engine());
-app.set('view engine', 'handlebars');
-app.set('views', './views');
+app.use(express.static(path.resolve('public')));
 
+// 🎨 Handlebars configurado correctamente
+app.engine('handlebars', exphbs.engine({
+    defaultLayout: 'main',
+    layoutsDir: path.resolve('src/views/layouts') // CORREGIDO
+}));
+app.set('view engine', 'handlebars');
+app.set('views', path.resolve('src/views')); // CORREGIDO
+
+// 🧭 Rutas
 app.use('/api/products', ProductRouters);
 app.use('/api/carts', cartRouters);
 app.use('/', viewsRouter);
 
+// 🔌 WebSocket
 io.on('connection', async socket => {
-    console.log('Cliente conectado via WebSocket');
-    //Envia la lista de productos al nuevo cliente
+    console.log('🟢 Cliente conectado via WebSocket');
+
     const products = await manager.getProducts();
     socket.emit('updateProducts', products);
-    // Escuchar producto nuevo enviado desde el cliente
+
     socket.on('newProduct', async data => {
         await manager.addProduct(data);
-        const updateProducts = await manager.getProducts();
-        io.emit('updateProducts', updateProducts);//lo envia a todos
+        const updatedProducts = await manager.getProducts();
+        io.emit('updateProducts', updatedProducts);
     });
 });
-server.listen(PORT, () => {
-    console.log(`Servidor corriendo en http://localhost:${PORT}`);
-});
+
+// 🛢️ MongoDB y arranque
+mongoose.connect('mongodb://localhost:27017/ecommerce')
+    .then(() => {
+        console.log('✅ Conectado a MongoDB');
+
+        server.listen(PORT, () => {
+            console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
+        });
+    })
+    .catch(err => {
+        console.error('❌ Error al conectar a MongoDB:', err);
+    });

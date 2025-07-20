@@ -1,36 +1,55 @@
-const productManager = require('../services/ProductManager')
-const manager = new productManager('./src/data/products.json')
+import ProductManager from '../services/ProductManager.js';
+const manager = new ProductManager();
 
-module.exports = {
+export default {
     getAll: async (req, res) => {
-        const result = await manager.getProducts()
-        res.json(result)
+        try {
+            const result = await manager.getProducts();
+            res.json(result);
+        } catch (err) {
+            res.status(500).json({ error: 'Error al obtener productos' });
+        }
     },
 
-    getById: async (req, res) => { //controlador de express, para obtener el producto por id
-        const result = await manager.getProductById(req.params.id) //corregido: el método se llamaba en plural, ahora está bien
-        result ? res.json(result) : res.status(404).send('producto no encontrado') //se evalua si se encuentra el producto y si no tira 404
+    getById: async (req, res) => {
+        try {
+            const result = await manager.getProductsById(req.params.pid);
+            result ? res.json(result) : res.status(404).send('Producto no encontrado');
+        } catch (err) {
+            res.status(500).json({ error: 'Error al buscar producto' });
+        }
     },
 
-    create: async (req, res) => { //crear un producto
+    create: async (req, res) => {
         const { titulo, descripcion, codigo, precio, status } = req.body;
 
-        //validación de campos requeridos y tipo de status
         if (!titulo || !descripcion || !codigo || !precio || typeof status !== 'boolean') {
             return res.status(400).json({ error: 'Faltan campos requeridos o status inválido' });
         }
 
-        const result = await manager.addProduct(req.body)
-        res.status(201).json(result)
+        try {
+            const result = await manager.addProduct(req.body);
+            res.status(201).json(result);
+        } catch (err) {
+            res.status(500).json({ error: 'Error al crear producto' });
+        }
     },
 
-    update: async (req, res) => { //actualizar producto por pid
-        const result = await manager.updateProduct(req.params.pid, req.body)
-        result ? res.json(result) : res.status(404).send('producto no encontrado')
+    update: async (req, res) => {
+        try {
+            const result = await manager.updateProduct(req.params.pid, req.body);
+            result ? res.json(result) : res.status(404).send('Producto no encontrado');
+        } catch (err) {
+            res.status(500).json({ error: 'Error al actualizar producto' });
+        }
     },
 
-    delete: async (req, res) => { //eliminar producto por pid
-        const result = await manager.deleteProduct(req.params.pid)
-        result ? res.json(result) : res.status(404).send('producto no encontrado')
+    delete: async (req, res) => {
+        try {
+            const result = await manager.deleteProduct(req.params.pid);
+            result ? res.json(result) : res.status(404).send('Producto no encontrado');
+        } catch (err) {
+            res.status(500).json({ error: 'Error al eliminar producto' });
+        }
     }
-}
+};

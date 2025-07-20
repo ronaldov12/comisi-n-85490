@@ -1,82 +1,60 @@
-const fs = require('fs');
-const path = require('path');
-const { v4: uuidv4 } = require('uuid');
+import { ProductModel } from "../models/ProductModel.js"; // Modelo de MongoDB
 
-class ProductManager {
-    constructor() {
-        // ! define la ruta absoluta al archivo product.json
-        this.filepath = path.join(__dirname, '../data/products.json');
+export class ProductManager {
 
-        // ! si el archivo no existe, lo crea vacío como array
-        if (!fs.existsSync(this.filepath)) {
-            fs.writeFileSync(this.filepath, JSON.stringify([], null, 2));
+    async getProductsPaginated({ limit = 10, page = 1, sort, query }) {
+        const filters = {};
+
+        // Si llegaquery puede ser por categoría o por disponibilidad
+        if (query) {
+            if (query === 'true' || query === 'false') {
+                filters.status = query === 'true'; // Filtra por estado booleano
+            } else {
+                filters.category = query;          // Filtra por categoría
+            }
         }
+
+        const options = {
+            limit: parseInt(limit),
+            page: parseInt(page),
+            sort: sort ? { price: sort === 'asc' ? 1 : -1 } : {}
+        };
+
+        //ejecuta la busqueda con filtros y opciones
+        return await ProductModel.paginate(filters, options);
     }
 
+    // obtiene todos los productos almacenados 
     async getProducts() {
-        try {
-            // ! lee el archivo y devuelve los productos como array
-            const data = await fs.promises.readFile(this.filepath, 'utf-8');
-            const products = JSON.parse(data);
-            return products;
-        } catch (error) {
-            console.error('Error al cargar productos:', error);
-            return []; // ! en caso de error, devuelve array vacío
-        }
+        return await ProductModel.find();
     }
 
+    // busca un producto por su id
     async getProductsById(id) {
-        const products = await this.getProducts(); // ! obtiene todos los productos
-        return products.find(p => p.id === id); // ! busca y devuelve el producto por ID
+        return await ProductModel.findById(id);
     }
 
-    async addProduct(product) {
-        const products = await this.getProducts(); // ! obtiene todos los productos actuales
-
-        const newProduct = {
-            id: uuidv4(), // ! genera id único
-            status: true, // ! asigna el estado en true por defecto
-            ...product    // ! expande las propiedades del producto recibido
-        };
-
-        products.push(newProduct); // ! agrega el nuevo producto al array
-        await fs.promises.writeFile(this.filepath, JSON.stringify(products, null, 2)); // ! guarda el array actualizado en el archivo JSON
-        return newProduct; // ! devuelve el producto agregado
+    // agrega un nuevo producto usando mongo
+    async addProduct(productData) {
+        const newProduct = new ProductModel({
+            status: true,      // estado por defecto
+            ...productData     // propiedades que vienen del req.body
+        });
+        return await newProduct.save(); // guarda y devuelve el documento
     }
 
-    async updateProduct(id, update) {
-        const products = await this.getProducts(); // ! trae todos los productos
-        const index = products.findIndex(p => p.id === id); // ! buscamos el índice del producto por ID
-
-        if (index === -1) {
-            return null; // ! si no se encuentra el producto devuelve null
-        }
-
-        // * Actualizamos el producto:
-        // * conservamos los datos anteriores con ...products[index]
-        // * sobrescribimos los campos nuevos con ...update
-        // * mantenemos el ID sin que se modifique
-        products[index] = {
-            ...products[index],
-            ...update,
-            id: products[index].id
-        };
-
-        await fs.promises.writeFile(this.filepath, JSON.stringify(products, null, 2)); // ! guarda el array actualizado
-        return products[index]; // ! devuelve el producto actualizado
+    // actualiza los campos de un producto por su id
+    async updateProduct(id, updateData) {
+        return await ProductModel.findByIdAndUpdate(id, updateData, {
+            new: true          // devuelve el producto actualizado
+        });
     }
 
+    // elimina un producto por id devuelve true si se eliminó o null si no existe
     async deleteProduct(id) {
-        const products = await this.getProducts(); // ! obtiene todos los productos
-        const updateProducts = products.filter(p => p.id !== id); // ! filtra el que coincide con el ID
-
-        if (products.length === updateProducts.length) {
-            return null; // ! si no se encontró el producto para eliminar devuelve null
-        }
-
-        await fs.promises.writeFile(this.filepath, JSON.stringify(updateProducts, null, 2)); // ! guarda el array sin el producto eliminado
-        return true; // ! producto eliminado exitosamente
+        const result = await ProductModel.findByIdAndDelete(id);
+        return result ? true : null;
     }
 }
 
-module.exports = ProductManager;
+export default ProductManager;
