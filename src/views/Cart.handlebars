@@ -1,15 +1,81 @@
-<h1>carrito</h1>
+<h1>Carrito de Compras</h1>
+
+<a href="/">Volver al inicio 🏠</a>
 
 {{#if cart.products.length}}
 <ul>
     {{#each cart.products}}
     <li>
-        <strong>{{this.product.title}}</strong> – 
-        Precio: ${{this.product.price}} – 
-        Cantidad: {{this.quantity}}
+        <strong>{{this.product.title}}</strong> – Precio: ${{this.product.price}} – Cantidad: {{this.quantity}}
+
+        <!-- botones para modificar cantidad -->
+        <button onclick="cambiarCantidad('{{../cart._id}}', '{{this.product._id}}', {{this.quantity}} - 1)" {{#if (lte this.quantity 1)}}disabled{{/if}}>-</button>
+        <button onclick="cambiarCantidad('{{../cart._id}}', '{{this.product._id}}', {{this.quantity}} + 1)">+</button>
+
+        <!-- boton para eliminar producto -->
+        <button onclick="eliminarProducto('{{../cart._id}}', '{{this.product._id}}')">Eliminar</button>
     </li>
     {{/each}}
 </ul>
+
+<!-- boton para finalizar compra -->
+<button onclick="finalizarCompra('{{cart._id}}')">Finalizar compra 🛒</button>
+
 {{else}}
-<p>El carrito esta vacio </p>
+<p>El carrito está vacío.</p>
 {{/if}}
+
+<script>
+    async function cambiarCantidad(cartId, productId, nuevaCantidad) {
+        if (nuevaCantidad < 1) return;
+
+        try {
+            const res = await fetch(`/api/carts/${cartId}/products/${productId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ quantity: nuevaCantidad })
+            });
+
+            if (res.ok) location.reload();
+            else alert('Error al actualizar la cantidad');
+        } catch (err) {
+            alert('Error de conexión con el servidor');
+            console.error(err);
+        }
+    }
+
+    async function eliminarProducto(cartId, productId) {
+        try {
+            const res = await fetch(`/api/carts/${cartId}/products/${productId}`, {
+                method: 'DELETE'
+            });
+
+            if (res.ok) location.reload();
+            else alert('Error al eliminar el producto');
+        } catch (err) {
+            alert('Error de conexión con el servidor');
+            console.error(err);
+        }
+    }
+
+    async function finalizarCompra(cartId) {
+        const confirmar = confirm('¿Estás seguro de que quieres finalizar la compra? 🛍️');
+        if (!confirmar) return;
+
+        try {
+            const res = await fetch(`/api/carts/${cartId}`, {
+                method: 'DELETE'
+            });
+
+            if (res.ok) {
+                alert('¡Compra realizada con éxito!');
+                location.reload();
+            } else {
+                alert('Error al finalizar la compra');
+            }
+        } catch (err) {
+            alert('Error de conexión con el servidor');
+            console.error(err);
+        }
+    }
+</script>

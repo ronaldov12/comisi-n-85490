@@ -3,7 +3,7 @@ import controller from '../controllers/product.controllers.js';
 
 const router = express.Router();
 
-// Rutas de productos
+// rutas de productos
 router.get('/', controller.getAll);
 router.get('/:pid', controller.getById);
 router.post('/', controller.create);

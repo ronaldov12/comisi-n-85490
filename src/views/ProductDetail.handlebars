@@ -1,43 +1,103 @@
-<h1>🧾 Detalle del Producto</h1>
+<h1>Detalles del Producto</h1>
 
 <div class="product-detail-card">
-    <h2>{{product.titulo}}</h2>
-    <p><strong>Descripción:</strong> {{product.descripcion}}</p>
-    <p><strong>Precio:</strong> ${{product.precio}}</p>
-    <p><strong>Categoría:</strong> {{product.categoria}}</p>
+    <h2>{{product.title}}</h2>
+    <p><strong>Descripción:</strong> {{product.description}}</p>
+    <p><strong>Código:</strong> {{product.code}}</p>
+    <p><strong>Precio:</strong> ${{product.price}}</p>
+    <p><strong>Stock:</strong> {{product.stock}}</p>
+    <p><strong>Categoría:</strong> {{product.category}}</p>
 
-    <button onclick="agregarAlCarrito('{{product._id}}')">Agregar al carrito</button>
+    <button id="addToCartBtn">Agregar al carrito</button>
+    <button id="goToCartBtn" style="display: none;">Ir al carrito</button>
 </div>
 
 <script>
-function agregarAlCarrito(productId) {
-    alert("Producto agregado al carrito: " + productId);
-    // 🚧 Podés hacer POST con fetch si querés conectarlo
-}
+    document.addEventListener('DOMContentLoaded', () => {
+        const btnAdd = document.getElementById('addToCartBtn');
+        const btnCart = document.getElementById('goToCartBtn');
+
+        btnAdd.addEventListener('click', async () => {
+            try {
+                const productId = '{{product._id}}';
+                console.log('Producto a agregar:', productId);
+
+                let cartId = localStorage.getItem('cartId');
+                if (!cartId || cartId === 'undefined') cartId = null;
+                console.log('cartId inicial:', cartId);
+
+                if (!cartId) {
+                    console.log('Creando carrito...');
+                    const res = await fetch('/api/carts', { method: 'POST' });
+                    const data = await res.json();
+                    console.log('POST /api/carts →', res.status, data);
+
+                    if (res.ok && data.result && data.result._id) {
+                        cartId = data.result._id;
+                        localStorage.setItem('cartId', cartId);
+                        console.log('Nuevo cartId guardado:', cartId);
+                    } else {
+                        return alert('❌ Error creando el carrito');
+                    }
+                }
+
+                console.log('Agregando producto:', `/api/carts/${cartId}/products/${productId}`);
+                const response = await fetch(`/api/carts/${cartId}/products/${productId}`, {
+                    method: 'POST'
+                });
+
+                if (response.ok) {
+                    alert('✅ Producto agregado al carrito');
+                    btnCart.style.display = 'inline-block';
+                } else {
+                    const err = await response.json();
+                    alert(`❌ Error al agregar: ${err.message}`);
+                }
+            } catch (e) {
+                console.error(e);
+                alert('❌ Error de conexión');
+            }
+        });
+
+        btnCart.addEventListener('click', () => {
+            const cartId = localStorage.getItem('cartId');
+            if (cartId) {
+                window.location.href = `/carts/${cartId}`;
+            } else {
+                alert('❌ No se encontró el carrito');
+            }
+        });
+    });
 </script>
 
 <style>
-.product-detail-card {
-    border: 1px solid #ccc;
-    padding: 25px;
-    margin: 30px auto;
-    max-width: 500px;
-    border-radius: 10px;
-    background-color: #f2f2f2;
-    box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
-}
+    .product-detail-card {
+        border: 1px solid #ccc;
+        padding: 25px;
+        margin: 30px auto;
+        max-width: 500px;
+        border-radius: 10px;
+        background-color: #f2f2f2;
+        box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
+    }
 
-button {
-    margin-top: 15px;
-    padding: 10px 20px;
-    background-color: #3498db;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-}
+    .product-detail-card p {
+        margin: 8px 0;
+    }
 
-button:hover {
-    background-color: #2980b9;
-}
+    button {
+        margin-top: 15px;
+        padding: 10px 20px;
+        background-color: #3498db;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        display: inline-block;
+        margin-right: 10px;
+    }
+
+    button:hover {
+        background-color: #2980b9;
+    }
 </style>

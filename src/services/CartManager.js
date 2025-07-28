@@ -1,64 +1,78 @@
 import { CartModel } from '../models/CartModel.js';
+import { ProductModel } from '../models/ProductModel.js';
+import mongoose from 'mongoose';
 
 export class CartManager {
-    //  Crea un nuevo carrito vacío
     async createCart() {
-        const newCart = new CartModel({ products: [] });
-        return await newCart.save(); // Guarda y devuelve el carrito
+        return await new CartModel({ products: [] }).save();
     }
 
-    //  Busca un carrito por su ID
     async getCartById(cartId) {
+        if (!mongoose.Types.ObjectId.isValid(cartId)) return null;
         return await CartModel.findById(cartId).populate('products.product');
     }
 
-    //  Agrega un producto al carrito (si existe, aumenta cantidad)
     async addProductToCart(cartId, productId) {
+        if (!mongoose.Types.ObjectId.isValid(cartId) || !mongoose.Types.ObjectId.isValid(productId))
+            return null;
+
         const cart = await CartModel.findById(cartId);
         if (!cart) return null;
 
-        const existingProduct = cart.products.find(p => p.product.equals(productId));
+        const product = await ProductModel.findById(productId);
+        if (!product) return null;
 
-        if (existingProduct) {
-            existingProduct.quantity += 1;
-        } else {
-            cart.products.push({ product: productId, quantity: 1 });
-        }
+        const existing = cart.products.find((p) => p.product.toString() === productId);
+        if (existing) existing.quantity++;
+        else cart.products.push({ product: productId, quantity: 1 });
 
         return await cart.save();
     }
-
-    //  Elimina un producto puntual del carrito
+    //  elimina un producto puntual del carrito
     async removeProductFromCart(cartId, productId) {
-        return await CartModel.updateOne(
-            { _id: cartId },
-            { $pull: { products: { product: productId } } }
-        );
+        if (!mongoose.Types.ObjectId.isValid(cartId) || !mongoose.Types.ObjectId.isValid(productId)) return null;
+
+        const cart = await CartModel.findById(cartId);
+        if (!cart) return null;
+
+        cart.products = cart.products.filter(p => p.product.toString() !== productId);
+
+        return await cart.save(); // devuelve el carrito sin ese producto
     }
 
-    //  Reemplaza todos los productos con un nuevo array
+    //  reemplaza todos los productos con un nuevo array
     async updateCartProducts(cartId, newProductsArray) {
-        return await CartModel.updateOne(
-            { _id: cartId },
-            { $set: { products: newProductsArray } }
-        );
+        if (!mongoose.Types.ObjectId.isValid(cartId)) return null;
+
+        const cart = await CartModel.findById(cartId);
+        if (!cart) return null;
+
+        cart.products = newProductsArray;
+        return await cart.save(); // guarda y devuelve el carrito con los nuevos productos
     }
 
-    // Modifica la cantidad de un producto específico
+    //  modifica la cantidad de un producto especifico
     async updateProductQuantity(cartId, productId, quantity) {
-        return await CartModel.updateOne(
-            { _id: cartId, 'products.product': productId },
-            { $set: { 'products.$.quantity': quantity } }
-        );
+        if (!mongoose.Types.ObjectId.isValid(cartId) || !mongoose.Types.ObjectId.isValid(productId)) return null;
+
+        const cart = await CartModel.findById(cartId);
+        if (!cart) return null;
+
+        const productToUpdate = cart.products.find(p => p.product.toString() === productId);
+        if (!productToUpdate) return null;
+
+        productToUpdate.quantity = quantity;
+        return await cart.save(); // guarda y devuelve el carrito actualizado
     }
 
-    //  Vacía el carrito 
+    //  vacia el carrito 
     async clearCart(cartId) {
-        return await CartModel.updateOne(
-            { _id: cartId },
-            { $set: { products: [] } }
-        );
+        if (!mongoose.Types.ObjectId.isValid(cartId)) return null;
+
+        const cart = await CartModel.findById(cartId);
+        if (!cart) return null;
+
+        cart.products = [];
+        return await cart.save(); // devuelve el carrito vacio
     }
 }
-
-export default CartManager;
